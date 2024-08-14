@@ -1,0 +1,147 @@
+version: '3.7'
+
+x-spark-common: &spark-common
+  image: bitnami/spark:latest
+  volumes:
+    - ./jobs:/opt/bitnami/spark/jobs
+    - ./data:/opt/bitnami/spark/data
+    - ./resources:/opt/bitnami/spark/resources
+  environment:
+      TZ: "Asia/Seoul"
+  networks:
+    - default-network
+
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - airflow.env
+  volumes:
+    - ./jobs:/opt/airflow/jobs
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./resources:/opt/bitnami/spark/resources
+    - ./data:/opt/bitnami/spark/data
+  depends_on:
+    - postgres
+  environment:
+      TZ: "Asia/Seoul"
+  networks:
+    - default-network
+
+services:
+  spark-master:
+    <<: *spark-common
+    hostname: spark-master
+    command: bin/spark-class org.apache.spark.deploy.master.Master
+    expose:
+      - "7077"
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+      - "4444:4040"
+
+  spark-worker-1:
+    <<: *spark-common
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 1g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  spark-worker-2:
+    <<: *spark-common
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 1g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  jupyter-spark:
+    build:
+      context: .
+      dockerfile: jupyter/Dockerfile
+    networks:
+      - default-network
+    ports:
+      - "8889:8888"
+      - "4040-4080:4040-4080"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./data:/home/jovyan/data
+      - ./jobs:/home/jovyan/jobs
+      - ./resources:/home/jovyan/resources
+    environment:
+      - JUPYTER_TOKEN=password
+
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.4.3
+    networks:
+      - default-network
+    environment:
+      - node.name=es
+      - discovery.type=single-node
+      - discovery.seed_hosts=es
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - ELASTIC_PASSWORD=password
+    deploy:
+      resources:
+        limits:
+          memory: '1073741824b'  
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./es-data:/usr/share/es/data
+    ports:
+      - 9200:9200
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.4.3
+    networks:
+      - default-network
+    environment:
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_HOSTS=http://es:9200
+      - ELASTICSEARCH_USERNAME=kibana
+      - ELASTICSEARCH_PASSWORD=password
+    ports:
+      - 5601:5601
+    depends_on:
+      - es
+
+  postgres:
+    image: postgres:14.0
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    networks:
+      - default-network
+
+  webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8081:8080"
+    depends_on:
+      - scheduler
+
+  scheduler:
+    <<: *airflow-common
+    command: bash -c "airflow db init && airflow db migrate && airflow users create --username airflow --firstname airflow --lastname airflow --role Admin --email airflow@gmail.com --password airflow && airflow scheduler"
+
+networks:
+  default-network:
