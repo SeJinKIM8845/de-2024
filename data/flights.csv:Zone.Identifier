@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://kilthub.cmu.edu/
+HostUrl=https://s3-eu-west-1.amazonaws.com/pstorage-cmu-348901238291901/26385151/flights.csv?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAI266R7V6O36O5JUA/20240805/eu-west-1/s3/aws4_request&X-Amz-Date=20240805T015010Z&X-Amz-Expires=10&X-Amz-SignedHeaders=host&X-Amz-Signature=8291c79f00260d5a1791952b9f1b9fcff3ffd084209c5a2359a2233e82194261
