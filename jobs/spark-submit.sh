@@ -3,10 +3,10 @@
 JARS="/opt/bitnami/spark/resources/elasticsearch-spark-30_2.12-8.4.3.jar"
 
 JOBNAME="RefinePipeline"
-SCRIPT=$@
+SCRIPT="/opt/bitnami/spark/jobs/main.py"
 echo ${SCRIPT}
 
-spark-submit \
+spark-submit docker exec -it de-2024_spark-master_1 sh spark-submit.sh \
   --name ${JOBNAME} \
   --master spark://spark-master:7077 \
   --jars ${JARS} \
@@ -18,8 +18,8 @@ spark-submit \
   --conf spark.memory.offHeap.enabled=true \
   --conf spark.memory.offHeap.size=2G \
   --conf spark.shuffle.service.enabled=true \
-  --conf spark.executor.memory=2G \
-  --conf spark.driver.memory=2G \
+  --conf spark.executor.memory=3G \
+  --conf spark.driver.memory=3G \
   --conf spark.driver.maxResultSize=0 \
   --num-executors 2 \
   --executor-cores 1 \

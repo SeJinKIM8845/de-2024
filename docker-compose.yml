@@ -7,7 +7,7 @@ x-spark-common: &spark-common
     - ./data:/opt/bitnami/spark/data
     - ./resources:/opt/bitnami/spark/resources
   environment:
-      TZ: "Asia/Seoul"
+    TZ: "Asia/Seoul"
   networks:
     - default-network
 
@@ -26,7 +26,7 @@ x-airflow-common: &airflow-common
   depends_on:
     - postgres
   environment:
-      TZ: "Asia/Seoul"
+    TZ: "Asia/Seoul"
   networks:
     - default-network
 
@@ -71,7 +71,7 @@ services:
     networks:
       - default-network
     ports:
-      - "8889:8888"
+      - "8887:8888"
       - "4040-4080:4040-4080"
     volumes:
       - ./notebooks:/home/jovyan/work
@@ -88,35 +88,32 @@ services:
     environment:
       - node.name=es
       - discovery.type=single-node
-      - discovery.seed_hosts=es
       - xpack.security.enabled=false
       - xpack.security.enrollment.enabled=false
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
-      - cluster.routing.allocation.disk.threshold_enabled=false
-      - ELASTIC_PASSWORD=password
-    deploy:
-      resources:
-        limits:
-          memory: '1073741824b'  
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
-      - ./es-data:/usr/share/es/data
+      - ./es-data:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.4.3
     networks:
       - default-network
     environment:
-      - SERVERNAME=kibana
       - ELASTICSEARCH_HOSTS=http://es:9200
-      - ELASTICSEARCH_USERNAME=kibana
-      - ELASTICSEARCH_PASSWORD=password
     ports:
       - 5601:5601
     depends_on:
@@ -128,6 +125,8 @@ services:
       - POSTGRES_USER=airflow
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_DB=airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - default-network
 
@@ -142,6 +141,10 @@ services:
   scheduler:
     <<: *airflow-common
     command: bash -c "airflow db init && airflow db migrate && airflow users create --username airflow --firstname airflow --lastname airflow --role Admin --email airflow@gmail.com --password airflow && airflow scheduler"
+
+volumes:
+  postgres_data:
+    driver: local
 
 networks:
   default-network:
