@@ -2,11 +2,12 @@
 
 JARS="/opt/bitnami/spark/resources/elasticsearch-spark-30_2.12-8.4.3.jar"
 
-JOBNAME="RefinePipeline"
-SCRIPT="/opt/bitnami/spark/jobs/main.py"
+JOBNAME="DroneDataAnalysis"
+# SCRIPT="/opt/airflow/jobs/main.py"
+SCRIPT="$1"
 echo ${SCRIPT}
-
-spark-submit docker exec -it de-2024_spark-master_1 sh spark-submit.sh \
+# docker exec -it de-2024_spark-master_1 spark-submit \
+spark-submit \
   --name ${JOBNAME} \
   --master spark://spark-master:7077 \
   --jars ${JARS} \
@@ -24,3 +25,7 @@ spark-submit docker exec -it de-2024_spark-master_1 sh spark-submit.sh \
   --num-executors 2 \
   --executor-cores 1 \
   ${SCRIPT}
+
+
+
+#docker exec -it de-2024_spark-master_1 sh spark-submit.sh

@@ -14,3 +14,4 @@ wget ${TARGET_URL} -P ${DATA_DIR} --backups=0;
 gunzip -f ${DATA_DIR}/${TARGET_DATE}-$i.json.gz;
 rm -f ${DATA_DIR}/${TARGET_FILE};
 done
+ 

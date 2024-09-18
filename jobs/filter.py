@@ -15,7 +15,7 @@ class DetailedTimeSeriesFilter(BaseFilter):
         return df.select(
             "date",
             "time",
-            "timestamp",  # 이 줄을 추가
+            "timestamp",
             "battery_voltage",
             "battery_current",
             "altitude",

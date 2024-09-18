@@ -22,7 +22,6 @@ if __name__ == "__main__":
     df = read_input(spark, args.input_path)
     df = init_df(df)
 
-    # Print schema for debugging
     print("Initial DataFrame Schema:")
     df.printSchema()
 
@@ -35,20 +34,16 @@ if __name__ == "__main__":
     detailed_time_series_filter = DetailedTimeSeriesFilter(spark)
     detailed_data = detailed_time_series_filter.filter(time_series_data)
 
-    # Print schema before string formatting for debugging
     print("Detailed Data Schema before string formatting:")
     detailed_data.printSchema()
 
-    # Recreate timestamp column if it's missing
     if "timestamp" not in detailed_data.columns:
         detailed_data = detailed_data.withColumn("timestamp", 
             to_timestamp(concat(col("date").cast("string"), lit(" "), col("time")), "yyyy-MM-dd HH:mm:ss"))
 
-    # Format date and timestamp as strings
     detailed_data = detailed_data.withColumn("date_string", date_format("date", "yyyy-MM-dd"))
     detailed_data = detailed_data.withColumn("timestamp_string", date_format("timestamp", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"))
 
-    # Print final schema for debugging
     print("Final Detailed Data Schema:")
     detailed_data.printSchema()
 
