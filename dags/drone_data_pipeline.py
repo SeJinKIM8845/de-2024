@@ -22,13 +22,14 @@ dag = DAG(
 
 collect_data = BashOperator(
     task_id='download_drone_data',
-    bash_command="bash /opt/airflow/jobs/drone-data.sh",
+    bash_command="bash /opt/airflow/jobs/drone-data.sh ",
     dag=dag
 )
 
+filename = '/opt/bitnami/spark/jobs/main.py'  # Spark 마스터에서 접근할 수 있는 경로로 수정
 filter_data = BashOperator(
     task_id='filter-data',
-    bash_command="bash /opt/airflow/jobs/spark-submit.sh /opt/airflow/jobs/main.py",
+    bash_command=f"bash /opt/airflow/jobs/spark-submit.sh {filename}",
     dag=dag
 )
 

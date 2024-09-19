@@ -23,6 +23,7 @@ x-airflow-common: &airflow-common
     - ./logs:/opt/airflow/logs
     - ./resources:/opt/bitnami/spark/resources
     - ./data:/opt/bitnami/spark/data
+    - /var/run/docker.sock:/var/run/docker.sock  # Docker 소켓 마운트 추가
   depends_on:
     - postgres
   environment:
@@ -104,7 +105,7 @@ services:
         soft: -1
         hard: -1
     volumes:
-      - ./es-data:/usr/share/elasticsearch/data
+      - ./es-data:/usr/share/es/data
     ports:
       - 9200:9200
     healthcheck:
