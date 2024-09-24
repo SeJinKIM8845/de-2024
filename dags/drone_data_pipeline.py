@@ -17,7 +17,7 @@ dag = DAG(
     'drone_data_analysis',
     default_args=default_args,
     description='A DAG for drone data analysis and anomaly detection',
-    schedule_interval=timedelta(days=1),
+    schedule_interval=None, 
 )
 
 collect_data = BashOperator(
@@ -26,7 +26,7 @@ collect_data = BashOperator(
     dag=dag
 )
 
-filename = '/opt/bitnami/spark/jobs/main.py'  # Spark 마스터에서 접근할 수 있는 경로로 수정
+filename = '/opt/bitnami/spark/jobs/main.py'  
 filter_data = BashOperator(
     task_id='filter-data',
     bash_command=f"bash /opt/airflow/jobs/spark-submit.sh {filename}",

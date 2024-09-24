@@ -37,6 +37,7 @@ x-airflow-common: &airflow-common
     - default-network
 
 services:
+  # Spark Master
   spark-master:
     <<: *spark-common
     hostname: spark-master
@@ -48,6 +49,7 @@ services:
       - "7077:7077"
       - "4444:4040"
 
+  # Spark Worker 1
   spark-worker-1:
     <<: *spark-common
     command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
@@ -59,6 +61,7 @@ services:
       SPARK_WORKER_MEMORY: 1g
       SPARK_MASTER_URL: spark://spark-master:7077
 
+  # Spark Worker 2
   spark-worker-2:
     <<: *spark-common
     command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
@@ -70,6 +73,7 @@ services:
       SPARK_WORKER_MEMORY: 1g
       SPARK_MASTER_URL: spark://spark-master:7077
 
+  # Jupyter Notebook with Spark
   jupyter-spark:
     build:
       context: .
@@ -87,8 +91,10 @@ services:
     environment:
       - JUPYTER_TOKEN=password
 
+  # Elasticsearch
   es:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.4.3
+    container_name: es
     networks:
       - default-network
     environment:
@@ -100,12 +106,13 @@ services:
       - xpack.security.transport.ssl.enabled=false
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - bootstrap.memory_lock=true
+      - DATA_DIR=/usr/share/elasticsearch/data
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
-      - ./es-data:/usr/share/es/data
+      - es_data:/usr/share/elasticsearch/data  # 네임드 볼륨 사용
     ports:
       - 9200:9200
     healthcheck:
@@ -114,6 +121,7 @@ services:
       timeout: 10s
       retries: 3
 
+  # Kibana
   kibana:
     image: docker.elastic.co/kibana/kibana:8.4.3
     networks:
@@ -125,6 +133,7 @@ services:
     depends_on:
       - es
 
+  # PostgreSQL for Airflow
   postgres:
     image: postgres:14.0
     environment:
@@ -132,10 +141,29 @@ services:
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_DB=airflow
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data  # 네임드 볼륨 사용
     networks:
       - default-network
 
+  # Grafana
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - '4000:3000'
+    volumes:
+      - grafana-storage:/var/lib/grafana  # 네임드 볼륨 사용
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # 기본 관리자 비밀번호 설정
+      - GF_SECURITY_ADMIN_USER=admin      # 기본 관리자 사용자 설정
+      - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=grafana-elasticsearch-datasource
+    networks:
+      - default-network
+    depends_on:
+      - es  # Elasticsearch가 먼저 시작되도록 설정
+
+  # Airflow Webserver
   webserver:
     <<: *airflow-common
     command: webserver
@@ -144,6 +172,7 @@ services:
     depends_on:
       - scheduler
 
+  # Airflow Scheduler
   scheduler:
     <<: *airflow-common
     command: bash -c "airflow db init && airflow db migrate && airflow users create --username airflow --firstname airflow --lastname airflow --role Admin --email airflow@gmail.com --password airflow && airflow scheduler"
@@ -151,6 +180,11 @@ services:
 volumes:
   postgres_data:
     driver: local
+  grafana-storage:
+    driver: local
+  es_data:  # 네임드 볼륨으로 Elasticsearch 데이터 영구 저장
+    driver: local
 
 networks:
   default-network:
+    driver: bridge
